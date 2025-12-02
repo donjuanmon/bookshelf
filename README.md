@@ -46,6 +46,7 @@ Already done
 - [x] Metadata is no longer cached locally.
 - [x] Removed servarr analytics spyware.
 - [x] Supports selfhosted metadata (UI or `METADATA_URL` env var).
+- [x] RSS import functionality for adding books from RSS feeds.
 
 ## Sponsors
 
