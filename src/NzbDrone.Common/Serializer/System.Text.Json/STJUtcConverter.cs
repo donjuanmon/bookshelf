@@ -8,7 +8,22 @@ namespace NzbDrone.Common.Serializer
     {
         public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return DateTime.Parse(reader.GetString()).ToUniversalTime();
+            var dateString = reader.GetString();
+
+            // Handle BC dates (before year 1 AD) which DateTime cannot represent
+            // Return DateTime.MinValue for ancient dates
+            if (!string.IsNullOrWhiteSpace(dateString) && dateString.Contains(" BC", StringComparison.OrdinalIgnoreCase))
+            {
+                return DateTime.MinValue;
+            }
+
+            // Try to parse the date, returning MinValue if parsing fails
+            if (DateTime.TryParse(dateString, out var result))
+            {
+                return result.ToUniversalTime();
+            }
+
+            return DateTime.MinValue;
         }
 
         public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)

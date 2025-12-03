@@ -148,6 +148,19 @@ namespace NzbDrone.Core.ImportLists
             if (toRefresh.Any())
             {
                 _commandQueueManager.Push(new BulkRefreshAuthorCommand(toRefresh, true));
+
+                // Queue searches immediately for authors/books with ShouldSearch enabled
+                // This avoids timing issues with AddOptions being loaded from the database
+                foreach (var author in addedAuthors.Where(a => a.AddOptions?.SearchForMissingBooks == true))
+                {
+                    _commandQueueManager.Push(new MissingBookSearchCommand(author.Id));
+                }
+
+                var booksToSearch = addedBooks.Where(b => b.AddOptions?.SearchForNewBook == true).Select(b => b.Id).ToList();
+                if (booksToSearch.Any())
+                {
+                    _commandQueueManager.Push(new BookSearchCommand(booksToSearch));
+                }
             }
 
             return processed;
