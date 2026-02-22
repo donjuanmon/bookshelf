@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -151,15 +152,39 @@ namespace NzbDrone.Core.ImportLists
 
                 // Queue searches immediately for authors/books with ShouldSearch enabled
                 // This avoids timing issues with AddOptions being loaded from the database
-                foreach (var author in addedAuthors.Where(a => a.AddOptions?.SearchForMissingBooks == true))
+                _logger.Debug("Checking {0} added authors for searches", addedAuthors.Count);
+                foreach (var author in addedAuthors)
                 {
-                    _commandQueueManager.Push(new MissingBookSearchCommand(author.Id));
+                    _logger.Debug("Author {0}: AddOptions={1}, SearchForMissingBooks={2}",
+                        author.Id,
+                        author.AddOptions != null,
+                        author.AddOptions?.SearchForMissingBooks);
+
+                    if (author.AddOptions?.SearchForMissingBooks == true)
+                    {
+                        _logger.Info("Queueing MissingBookSearchCommand for author {0}", author.Id);
+                        _commandQueueManager.Push(new MissingBookSearchCommand(author.Id));
+                    }
+                }
+
+                _logger.Debug("Checking {0} added books for searches", addedBooks.Count);
+                foreach (var book in addedBooks)
+                {
+                    _logger.Debug("Book {0}: AddOptions={1}, SearchForNewBook={2}",
+                        book.Id,
+                        book.AddOptions != null,
+                        book.AddOptions?.SearchForNewBook);
                 }
 
                 var booksToSearch = addedBooks.Where(b => b.AddOptions?.SearchForNewBook == true).Select(b => b.Id).ToList();
                 if (booksToSearch.Any())
                 {
+                    _logger.Info("Queueing BookSearchCommand for {0} books: [{1}]", booksToSearch.Count, string.Join(", ", booksToSearch));
                     _commandQueueManager.Push(new BookSearchCommand(booksToSearch));
+                }
+                else
+                {
+                    _logger.Debug("No books queued for search - none had SearchForNewBook=true");
                 }
             }
 
